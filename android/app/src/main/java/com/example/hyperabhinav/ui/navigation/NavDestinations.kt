@@ -15,7 +15,7 @@
  *
  */
 
-package com.nintherom.ui.navigation
+package com.example.hyperabhinav.ui.navigation
 
 import kotlinx.serialization.Serializable
 
