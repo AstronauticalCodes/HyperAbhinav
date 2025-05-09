@@ -1,4 +1,4 @@
-package com.nintherom.ui.navigation
+package com.example.hyperabhinav.ui.navigation
 
 import android.content.Context
 import android.content.Intent
@@ -25,6 +25,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
+import com.example.hyperabhinav.ui.navigation.NavDestinations.Chat
+import com.example.hyperabhinav.ui.pages.chat.ChatScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -131,6 +133,8 @@ fun NavHostController(intent: Intent) {
             ) + fadeOut(animationSpec = tween(300))
         }
     ) {
-
+        composable<NavDestinations.Chat> {
+            ChatScreen()
+        }
     }
 }
