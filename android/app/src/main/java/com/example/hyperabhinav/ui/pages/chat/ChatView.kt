@@ -1,12 +1,17 @@
 package com.example.hyperabhinav.ui.pages.chat
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Send
@@ -18,17 +23,22 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hyperabhinav.R
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen() {
     var message by remember { mutableStateOf("") }
-    val messages = remember { mutableStateListOf<Pair<String, Boolean>>() } // Pair of message and isSentByUser
+    val messages = remember { mutableStateListOf<Triple<String, Boolean, Long>>() } // Triple: message, isSentByUser, timestamp
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // Drawer state
     val scope = rememberCoroutineScope()
 
@@ -38,6 +48,20 @@ fun ChatScreen() {
 
     val contentScale = if (offset == -drawerWidth) 1f else 1f - 0.03f * (1f + offset / drawerWidth).coerceIn(0f, 1f)
     val contentPadding = (drawerWidth.dp * (1f - contentScale))
+
+    val listState = rememberLazyListState() // For scrolling to bottom
+    var isBotTyping by remember { mutableStateOf(false) } // For typing indicator
+    var lastSeenIndex by remember { mutableStateOf(-1) } // For "seen" indicator
+
+    fun formatTime(ts: Long): String {
+        return SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(ts))
+    }
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
 
     ModalNavigationDrawer(
         scrimColor = DrawerDefaults.scrimColor,
@@ -113,47 +137,96 @@ fun ChatScreen() {
                     )
                 }
 
-                // Chat Messages
+                // Chat Messages (Scrollable, with timestamps, seen, and typing indicator)
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(8.dp)
                 ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxSize()
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        messages.forEach { (text, isSentByUser) ->
+                        itemsIndexed(messages) { idx, (text, isSentByUser, timestamp) ->
                             Row(
                                 horizontalArrangement = if (isSentByUser) Arrangement.End else Arrangement.Start,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .background(
-                                            if (isSentByUser) Color.Green else Color.DarkGray,
-                                            shape = MaterialTheme.shapes.medium
-                                        )
-                                        .padding(8.dp)
+                                Column(
+                                    horizontalAlignment = if (isSentByUser) Alignment.End else Alignment.Start
                                 ) {
-                                    Text(
-                                        text = text,
-                                        color = Color.White
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .background(
+                                                if (isSentByUser) Color(0xFFDCF8C6) else Color(0xFFEDEDED),
+                                                shape = MaterialTheme.shapes.medium
+                                            )
+                                            .padding(12.dp)
+                                    ) {
+                                        Text(
+                                            text = text,
+                                            color = Color.Black,
+                                            fontSize = 16.sp
+                                        )
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = formatTime(timestamp),
+                                            fontSize = 11.sp,
+                                            color = Color.Gray,
+                                            modifier = Modifier.padding(top = 2.dp, end = 4.dp)
+                                        )
+                                        if (isSentByUser && idx == messages.lastIndex) {
+                                            // Seen indicator for last user message
+                                            Text(
+                                                text = if (lastSeenIndex == idx) "Seen" else "Sent",
+                                                fontSize = 11.sp,
+                                                color = if (lastSeenIndex == idx) Color(0xFF34B7F1) else Color.Gray
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (isBotTyping) {
+                            item {
+                                Row(
+                                    horizontalArrangement = Arrangement.Start,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(Color(0xFFEDEDED), shape = MaterialTheme.shapes.medium)
+                                            .padding(12.dp)
+                                    ) {
+                                        // Simple animated dots for typing
+                                        TypingIndicator()
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                // Input Box
+                // Input Box with attachment icon
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp)
                 ) {
+                    IconButton(onClick = { /* TODO: Attachment logic */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Attach",
+                            tint = Color.Gray
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
                     BasicTextField(
                         value = message,
                         onValueChange = { message = it },
@@ -164,18 +237,36 @@ fun ChatScreen() {
                         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = {
                             if (message.isNotBlank()) {
-                                messages.add(message to true) // User's message
-                                messages.add("This is a reply." to false) // Hardcoded reply
+                                val now = System.currentTimeMillis()
+                                messages.add(Triple(message, true, now))
+                                lastSeenIndex = messages.lastIndex
                                 message = ""
+                                // Simulate bot typing
+                                scope.launch {
+                                    isBotTyping = true
+                                    delay(1200)
+                                    isBotTyping = false
+                                    messages.add(Triple("This is a reply.", false, System.currentTimeMillis()))
+                                    lastSeenIndex = messages.lastIndex
+                                }
                             }
                         })
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = {
                         if (message.isNotBlank()) {
-                            messages.add(message to true) // User's message
-                            messages.add("This is a reply." to false) // Hardcoded reply
+                            val now = System.currentTimeMillis()
+                            messages.add(Triple(message, true, now))
+                            lastSeenIndex = messages.lastIndex
                             message = ""
+                            // Simulate bot typing
+                            scope.launch {
+                                isBotTyping = true
+                                delay(1200)
+                                isBotTyping = false
+                                messages.add(Triple("This is a reply.", false, System.currentTimeMillis()))
+                                lastSeenIndex = messages.lastIndex
+                            }
                         }
                     }) {
                         Icon(imageVector = Icons.Default.Send, contentDescription = "Send")
@@ -184,4 +275,31 @@ fun ChatScreen() {
             }
         }
     )
+}
+
+// Typing indicator composable (three animated dots)
+@Composable
+fun TypingIndicator() {
+    val dotCount = 3
+    val anim = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            anim.animateTo(
+                targetValue = 1f,
+                animationSpec = androidx.compose.animation.core.tween(durationMillis = 900)
+            )
+            anim.snapTo(0f)
+        }
+    }
+    Row {
+        for (i in 0 until dotCount) {
+            val alpha = ((anim.value * dotCount - i).coerceIn(0f, 1f))
+            Box(
+                Modifier
+                    .size(8.dp)
+                    .padding(2.dp)
+                    .background(Color.Gray.copy(alpha = alpha), CircleShape)
+            )
+        }
+    }
 }
