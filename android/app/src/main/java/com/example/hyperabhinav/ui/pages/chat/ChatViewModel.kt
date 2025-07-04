@@ -1,8 +1,11 @@
 package com.example.hyperabhinav.ui.pages.chat
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.your_app_package.data.GeminiApiClient
+import com.example.hyperabhinav.data.GeminiApiClient
+import com.example.hyperabhinav.data.database.ChatDatabase
+import com.example.hyperabhinav.data.repository.ChatRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,12 +22,29 @@ data class ChatUiState(
 )
 
 class ChatViewModel(
-    private val geminiApiClient: GeminiApiClient = GeminiApiClient() // Provide a default for simplicity here,
-    // or use Hilt/Koin for proper DI
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
+
+    private val database = ChatDatabase.getDatabase(application)
+    private val repository = ChatRepository(database, GeminiApiClient())
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
+
+    init {
+        // Load existing chat history when ViewModel is created
+        loadChatHistory()
+    }
+
+    private fun loadChatHistory() {
+        viewModelScope.launch {
+            repository.getMessages().collect { messages ->
+                _uiState.update { currentState ->
+                    currentState.copy(messages = messages)
+                }
+            }
+        }
+    }
 
     fun updateCurrentInput(newInput: String) {
         _uiState.update { it.copy(currentInput = newInput) }
@@ -36,7 +56,6 @@ class ChatViewModel(
 
         _uiState.update {
             it.copy(
-                messages = it.messages + Message(text = userMessage, isUser = true),
                 currentInput = "",
                 isLoading = true,
                 error = null
@@ -44,20 +63,27 @@ class ChatViewModel(
         }
 
         viewModelScope.launch {
-            val response = geminiApiClient.sendMessage(userMessage)
-            _uiState.update { currentState ->
-                currentState.copy(
-                    messages = currentState.messages + Message(text = response, isUser = false),
-                    isLoading = false
-                )
+            try {
+                repository.sendMessageToGemini(userMessage)
+                _uiState.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to send message: ${e.localizedMessage}"
+                    )
+                }
             }
         }
     }
 
-    fun resetChat() {
-        geminiApiClient.resetChatHistory()
-        _uiState.update {
-            ChatUiState() // Reset to initial state
+    fun clearChatHistory() {
+        viewModelScope.launch {
+            repository.clearChatHistory()
         }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 }

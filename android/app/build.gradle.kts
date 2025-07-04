@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.serialization)
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+    id("kotlin-kapt")
 }
 
 android {
@@ -42,6 +43,10 @@ android {
     }
 }
 
+secrets {
+    propertiesFileName = "secrets.properties"
+}
+
 dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.core.ktx)
@@ -62,4 +67,12 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.generativeai) // Check for the latest version!
+
+    // Room dependencies
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
+
+    // ViewModel and LiveData
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
 }

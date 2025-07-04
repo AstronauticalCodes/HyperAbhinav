@@ -2,7 +2,7 @@ package com.example.hyperabhinav.data
 
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
-import com.your_app_package.BuildConfig // Make sure this matches your package
+import com.example.hyperabhinav.BuildConfig
 
 class GeminiApiClient {
 
@@ -10,7 +10,7 @@ class GeminiApiClient {
     // if you specifically want to use that. Otherwise, "gemini-1.5-flash"
     // is a good default for free tier usage.
     private val generativeModel = GenerativeModel(
-        modelName = "your_fine_tuned_model_id", // e.g., "gemini-1.5-flash" or your custom model ID
+        modelName = "gemini-2.0-flash-lite", // e.g., "gemini-1.5-flash" or your custom model ID
         apiKey = BuildConfig.GEMINI_API_KEY
     )
 

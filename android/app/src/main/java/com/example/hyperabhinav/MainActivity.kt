@@ -24,19 +24,20 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             HyperAbhinavTheme {
-                Scaffold(
-                    contentWindowInsets = WindowInsets.safeDrawing,
-                    modifier = Modifier.fillMaxSize()
-                ) { innerPadding ->
-                    Surface(
-                        color = Color.Transparent,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                    ) {
-                        NavHostController(intent)
-                    }
-                }
+//                Scaffold(
+//                    contentWindowInsets = WindowInsets.safeDrawing,
+//                    modifier = Modifier.fillMaxSize()
+//                ) { innerPadding ->
+//                    Surface(
+//                        color = Color.Transparent,
+//                        modifier = Modifier
+//                            .fillMaxSize()
+//                            .padding(innerPadding),
+//                    ) {
+//                    }
+//                }
+
+                NavHostController(intent)
             }
         }
     }
